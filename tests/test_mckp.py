@@ -5,13 +5,15 @@ import mckp
 
 # Create test data with more customers and smaller numbers
 
+patient_ids = pa.array(['a', 'b', 'c', 'd', 'e'])
+
 treatment_ids = pa.array([
-    [0, 1, 2, 3], 
-    [0, 1, 2], 
-    [0, 1, 2], 
-    [0, 1, 2], 
-    [0, 1, 2]
-], type=pa.list_(pa.uint32()))
+    ['A', 'B', 'C', 'D', 'E'], 
+    ['A', 'B', 'C'],
+    ['A', 'B', 'C'],
+    ['A', 'B', 'C'],
+    ['A', 'B', 'C'],
+])
 
 rewards = pa.array([
     [0, 15, 22, 30], 
@@ -30,6 +32,7 @@ costs = pa.array([
 ], type=pa.list_(pa.float64()))
 
 table = pl.DataFrame({
+    'patient_id': patient_ids,
     'treatment_id': treatment_ids,
     'reward': rewards,
     'cost': costs
@@ -51,7 +54,11 @@ budget_constraint = 50
 print("Python ListArray:", treatment_ids)
 print("\nC++ Analysis:")
 
-solver = mckp.Solver()
+unique_patient_ids = table.select('patient_id').unique()
+unique_treatment_ids = table.select(pl.col('treatment_id').explode().unique())
+
+print(unique_patient_ids)
+solver = mckp.Solver(unique_patient_ids, unique_treatment_ids)
 
 results = solver.fit(
     table,
