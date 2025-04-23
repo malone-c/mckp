@@ -49,7 +49,7 @@ class Solver:
                 .group_by('patient_id')
                 .agg('treatment_id')
         )
-        
+
         data = (
             data
                 .drop('treatment_id') 
@@ -76,6 +76,8 @@ class Solver:
             budget,
             n_threads,
         )
+
+        self._is_fit = True
         return self.path
 
     # TODO: Should return a pl.DataFrame with columns patient_id, treatment_id
