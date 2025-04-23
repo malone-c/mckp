@@ -10,6 +10,5 @@ cdef extern from "MAQ.h" namespace "mckp":
         vector[vector[uint32_t]]& treatment_id_arrays,
         vector[vector[double]]& reward_arrays,
         vector[vector[double]]& cost_arrays,
-        double budget,
-        uint32_t num_threads
+        double budget
     )

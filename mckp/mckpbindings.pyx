@@ -60,8 +60,7 @@ cpdef solver_cpp(
         cpp_treatment_ids,
         cpp_rewards,
         cpp_costs,
-        budget,
-        num_threads
+        budget
     )
 
     res = dict()
