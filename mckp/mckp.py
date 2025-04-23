@@ -9,10 +9,8 @@ class Solver:
     def __init__(self):
         self.path = None
         self._is_fit = False
-        # TODO: Manage treatment ID <-> int mapping here
         self.treatment_id_mapping = None
         self.patient_id_mapping = None
-        # TODO: Manage patient ID <-> int mapping here
 
     def fit(
         self,
