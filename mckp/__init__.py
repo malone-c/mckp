@@ -1,3 +1,3 @@
-from .mckp import MAQ, get_ipw_scores
+from .mckp import *
 
 __all__ = ["MAQ", "get_ipw_scores"]
