@@ -9,11 +9,12 @@ class Solver:
     def __init__(self):
         self.path = None
         self._is_fit = False
-        self.budget = None
         # TODO: Manage treatment ID <-> int mapping here
+        self.treatment_id_mapping = None
+        self.patient_id_mapping = None
         # TODO: Manage patient ID <-> int mapping here
 
-    def solve(
+    def fit(
         self,
         data: pl.DataFrame,
         budget: np.float64 = np.finfo(np.float64).max,
@@ -25,8 +26,23 @@ class Solver:
             # Check inner arrays have consistent lengths across outer arrays
                 # e.g. all(len(treatment_id_arrays[i]) == len(reward_arrays[i]) == len(cost_arrays[i]) for i in range(len(treatment_id_arrays)))
             # Check for nans/nulls
+
         assert np.isscalar(budget), "budget should be a scalar."
         assert n_threads >= 0, "n_threads should be >=0."
+
+        # make mappings
+        self.treatment_id_mapping = (
+            data
+                .select(pl.col("treatment_id").explode().unique())
+                .with_columns(pl.col('treatment_id').rank('dense', descending=True)) # dns should be 0 -- TODO: deal with this explicitly
+        )
+
+        self.treatment_id_mapping = (
+            data.select(
+                pl.col('treatment_id').explode().unique()
+            )
+        )
+
 
         table: pa.Table = pl.DataFrame(data).to_arrow()
         
@@ -42,7 +58,7 @@ class Solver:
             treatment_id_arrays,
             reward_arrays,
             cost_arrays,
-            self.budget,
+            budget,
             n_threads,
         )
         return self.path
