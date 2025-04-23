@@ -5,7 +5,6 @@
 // Distributed under the MIT License.
 
 #include "Data.hpp"
-#include "SolverOptions.hpp"
 #include "Solver.hpp"
 #include <iostream>
 
@@ -15,10 +14,8 @@ solution_path run(
   std::vector<std::vector<uint32_t>>& treatment_id_arrays,
   std::vector<std::vector<double>>& reward_arrays,
   std::vector<std::vector<double>>& cost_arrays,
-  double budget,
-  uint32_t num_threads
+  double budget
 ) {
-  SolverOptions options(budget, num_threads);
 
   std::vector<std::vector<TreatmentView>> treatment_arrays = process_data(
     treatment_id_arrays,
@@ -28,7 +25,7 @@ solution_path run(
   std::cout << "Data successfully pre-processed" << std::endl;
 
   std::cout << "Initializing solver" << std::endl;
-  Solver solver(treatment_arrays, options);
+  Solver solver(treatment_arrays, budget);
   std::cout << "Solver initialized" << std::endl;
 
   std::cout << "Fitting solver" << std::endl;

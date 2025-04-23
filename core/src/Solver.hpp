@@ -11,7 +11,6 @@
 
 #include "convex_hull.hpp"
 #include "compute_path.hpp"
-#include "SolverOptions.hpp"
 
 namespace mckp {
 
@@ -19,19 +18,16 @@ class Solver {
   public:
     Solver(
       std::vector<std::vector<TreatmentView>>& treatment_arrays,
-      const SolverOptions& options
-    ) : 
-      treatment_arrays(treatment_arrays),
-      options(options) {}
+      double budget
+    ) : treatment_arrays(treatment_arrays), budget(budget) {}
 
     solution_path fit() {
       convex_hull(treatment_arrays); // Prune in-place
-      return compute_path(treatment_arrays, options.budget);
+      return compute_path(treatment_arrays, budget);
     }
 
-    // TODO: Write a method to support predictions
     std::vector<std::vector<TreatmentView>> treatment_arrays;
-    SolverOptions options;
+    double budget;
 };
 
 } // namespace mckp
