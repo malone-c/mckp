@@ -6,11 +6,22 @@ from typing import cast
 from .ext import solver_cpp
 
 class Solver:
-    def __init__(self):
+    def __init__(self, unique_patients: pl.DataFrame, unique_treatments: pl.DataFrame):
+        assert unique_patients.columns == ['patient_id']
+        assert unique_treatments.columns == ['treatment_id']
+
+        # TODO: Handle this stuff inside the C++ extension
+        self.patient_id_mapping = unique_patients.with_columns(patient_num=pl.col("patient_id").rank("dense"))
+
+        self.treatment_id_mapping = (
+            unique_treatments
+                .filter(pl.col('treatment_id').str.to_lowercase() != 'dns') # remove DNS
+                .with_columns(treatment_num=pl.col("treatment_id").rank("dense").add(1).cast(pl.Int64))
+                .vstack(pl.DataFrame({'treatment_id': 'dns', 'treatment_num': 0})) # Add DNS back as 0
+        )
+
         self.path = None
         self._is_fit = False
-        self.treatment_id_mapping = None
-        self.patient_id_mapping = None
 
     def fit(
         self,
@@ -28,19 +39,23 @@ class Solver:
         assert np.isscalar(budget), "budget should be a scalar."
         assert n_threads >= 0, "n_threads should be >=0."
 
-        # make mappings
-        self.treatment_id_mapping = (
+        # convert treatment ID to treatment number
+        treatment_nums = (
             data
-                .select(pl.col("treatment_id").explode().unique())
-                .with_columns(pl.col('treatment_id').rank('dense', descending=True)) # dns should be 0 -- TODO: deal with this explicitly
+                .select('patient_id', 'treatment_id')
+                .explode('treatment_id')
+                .join(self.treatment_id_mapping, on='treatment_id')
+                .select('patient_id', treatment_id='treatment_num')
+                .group_by('patient_id')
+                .agg('treatment_id')
         )
-
-        self.treatment_id_mapping = (
-            data.select(
-                pl.col('treatment_id').explode().unique()
-            )
+        
+        data = (
+            data
+                .drop('treatment_id') 
+                .join(treatment_nums, on='patient_id') # replace treatment_id with treatment_num
+                .sort('patient_id')
         )
-
 
         table: pa.Table = pl.DataFrame(data).to_arrow()
         
@@ -48,6 +63,8 @@ class Solver:
         assert 'reward' in table.column_names, "table must contain a reward column."
         assert 'cost' in table.column_names, "table must contain a cost column."
 
+        # cast from large_list to list and combine the chunks so everything is contiguous in memory
+        # (helps us iterate over them faster)
         treatment_id_arrays = table.column("treatment_id").cast(pa.list_(pa.uint32())).combine_chunks()
         reward_arrays = table.column("reward").cast(pa.list_(pa.float64())).combine_chunks()
         cost_arrays = table.column("cost").cast(pa.list_(pa.float64())).combine_chunks()
@@ -61,7 +78,7 @@ class Solver:
         )
         return self.path
 
-    # TODO
+    # TODO: Should return a pl.DataFrame with columns patient_id, treatment_id
     def predict(self, spend, prediction_type="matrix"):
         """Predict the underlying treatment allocation pi_B.
 
