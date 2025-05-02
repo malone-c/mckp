@@ -35,11 +35,6 @@ ext = Extension(
     include_dirs=[str(core_dir), pa.get_include(), np.get_include()],
     library_dirs=[arrow_lib_dir],
     define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
-    install_requires=[
-        "pyarrow>=20.0.0",
-        "numpy>=2.2.4",
-        "polars>=1.27.1",
-    ],
 )
 
 setup(
@@ -47,5 +42,10 @@ setup(
     version="0.1",
     packages=find_packages(include=["mckp"]),
     ext_modules=cythonize(ext, compiler_directives={"language_level": 3}),
+    install_requires=[
+        "pyarrow>=20.0.0",
+        "numpy>=2.2.4",
+        "polars>=1.27.1",
+    ],
     # TODO: Add SPDX license expression
 )
