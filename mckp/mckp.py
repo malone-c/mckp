@@ -106,54 +106,6 @@ class Solver:
             .select('patient_id', 'treatment_id')
         )
 
-
-    def plot(self, horizontal_line=True, show_ci=True, max_points=10_000, **kwargs):
-        """Plot the Qini curve (requires matplotlib).
-
-        If the underlying policy involves treating zero units (as would be the case if all
-        reward estimates are negative), then nothing is plot.
-
-        Parameters
-        ----------
-        horizontal_line : bool
-            Whether to draw a horizontal line where the Qini curve plateaus.
-            Only applies if adding to an existing plot where the x-axis extends beyond this curve
-            and the maq object is fit with a maximum budget that is sufficient to treat all units
-            that are expected to benefit.
-        show_ci : bool
-            Whether to show estimated 95% confidence bars.
-        **kwargs : additional arguments passed to matplotlib.pyplot
-        """
-        try:
-            import matplotlib.pyplot as plt
-            from matplotlib import rcParams
-        except ImportError:
-            raise ImportError("plot method requires matplotlib.")
-    
-        max_points = max_points or len(self.path_spend_)
-        step_size = max(1, len(self.path_spend_) // max_points)
-
-        # matplotlib by default extends the axis xlim by 5% (rcParams["axes.xmargin"])
-        xscaling = 1 + rcParams["axes.xmargin"]
-        if "color" not in kwargs:
-            kwargs["color"] = "black"
-
-        plt.plot(self.path_spend_[::step_size], self.path_gain_[::step_size], **kwargs)
-        if "label" in kwargs:
-            plt.legend(loc="upper left")
-            del kwargs["label"]
-
-        if horizontal_line and self._path["complete_path"]:
-            plt.hlines(
-                y=self.path_gain_[-1],
-                xmin=self.path_spend_[-1],
-                xmax=plt.xlim()[1] / xscaling,
-                **kwargs
-            )
-
-        plt.xlabel("spend")
-        plt.ylabel("gain")
-
     @property
     def path_spend_(self):
         assert self._is_fit, "Solver object is not fit."
