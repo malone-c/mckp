@@ -36,7 +36,7 @@ ext = Extension(
     library_dirs=[arrow_lib_dir],
     define_macros=[("NPY_NO_DEPRECATED_API", "NPY_1_7_API_VERSION")],
     install_requires=[
-        "pyarrow>=19.0.1",
+        "pyarrow>=20.0.0",
         "numpy>=2.2.4",
         "polars>=1.27.1",
     ],
