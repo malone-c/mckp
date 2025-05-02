@@ -20,7 +20,7 @@ class Solver:
                 .vstack(pl.DataFrame({'treatment_id': 'dns', 'treatment_num': 0})) # Add DNS back as 0
         )
 
-        self.path = None
+        self._path = None
         self._is_fit = False
 
     def fit(
@@ -69,7 +69,7 @@ class Solver:
         reward_arrays = table.column("reward").cast(pa.list_(pa.float64())).combine_chunks()
         cost_arrays = table.column("cost").cast(pa.list_(pa.float64())).combine_chunks()
 
-        self.path = solver_cpp(
+        self._path = solver_cpp(
             treatment_id_arrays,
             reward_arrays,
             cost_arrays,
@@ -78,76 +78,33 @@ class Solver:
         )
 
         self._is_fit = True
-        return self.path
+        return self._path
 
-    # TODO: Should return a pl.DataFrame with columns patient_id, treatment_id
-    def predict(self, spend, prediction_type="matrix"):
-        """Predict the underlying treatment allocation pi_B.
-
-        Parameters
-        ----------
-        spend : scalar
-            The budget constraint level B to predict at.
-
-        type : str
-            If "matrix", then represent the underlying treatment allocation as a num_samples * K
-            matrix, where for row i, the k-th element is 1 if assigning the k-th arm to unit i is
-            optimal at a given spend, and 0 otherwise (with all entries 0 if the control arm is assigned).
-            If "vector" then represent the underlying treatment allocation as a num_samples-length
-            vector where entries take values in the set k=(0, 1, ..., K) where k=0 represents the
-            control arm. If at a given spend, the treatment allocation is fractional (i.e., for a
-            single unit i there is not sufficient budget left to assign the i-th unit an initial arm,
-            or upgrade to the next costlier arm), then the returned vector is the treatment
-            allocation in the solution path where the allocation is integer-valued but incurs a cost
-            (slightly) less than 'spend'.
-
-        Returns
-        -------
-        pi_B : ndarray
-            The treatment allocation at a given spend per unit.
-        """
-
-        assert np.isscalar(spend), "spend should be a scalar."
+    def predict(self, budget):
+        """Get the treatment allocation for a given budget."""
+        assert np.isscalar(budget), "spend should be a scalar."
         assert self._is_fit, "Solver object is not fit."
-        if not self._path["complete_path"] and spend > self.budget:
-            raise ValueError("maq path is not fit beyond given spend level.")
-
-        # Binary search to get the point in the path when we hit this budget
-        spend_path = self._path["spend"]
-        path_idx = np.searchsorted(spend_path, spend, side="right") - 1
-        if path_idx < 0:
-            return np.zeros(self._dim[0], dtype="int")
-
-        ipath = self._path["ipath"][: path_idx + 1]
-        kpath = self._path["kpath"][: path_idx + 1]
+        if not self._path["complete_path"] and budget > self.budget:
+            raise ValueError("Path is not fit beyond given spend level. Refit with a larger budget.")
         
-        # Get indices of first instances of unique units in reverse order (last time the treatment was set for each unit)
-        ix = np.unique(ipath[::-1], return_index=True)[1]
-
-        if prediction_type == "vector":
-            pi_vec = np.zeros(self._dim[0], dtype="int")
-            pi_vec[ipath[::-1][ix]] = kpath[::-1][ix] + 1
-            return pi_vec
-
-        pi_mat = np.zeros(self._dim, dtype="double")
-        pi_mat[ipath[::-1][ix], kpath[::-1][ix]] = 1
-
-        if path_idx == spend_path.shape[0] - 1:
-            return pi_mat
-
-        # fractional adjustment?
-        spend_diff = spend - spend_path[path_idx]
-        next_unit = self._path["ipath"][path_idx + 1]
-        next_arm = self._path["kpath"][path_idx + 1]
-        prev_arm = np.nonzero(pi_mat[next_unit,])[0]  # already assigned?
-
-        fraction = spend_diff / (spend_path[path_idx + 1] - spend_path[path_idx])
-        pi_mat[next_unit, next_arm] = fraction
-        if prev_arm.shape[0] > 0:
-            pi_mat[next_unit, prev_arm[0]] = 1 - fraction
-
-        return pi_mat
-
+        # Idea: Get the last setting for each patient, before the spend exceeds the budget
+        # For any patient we don't see, set their treatment to 0 (control)
+        return (
+            pl.DataFrame({
+                'spend': self._path["spend"],
+                'gain': self._path["gain"],
+                'patient_num': self._path["ipath"],
+                'treatment_num': self._path["kpath"],
+                'time': list(range(len(self._path["spend"]))),
+            })
+            .filter(pl.col('spend') <= budget)
+            .group_by('patient_num')
+            .agg(pl.col('patient_num', 'treatment_num').sort_by('time').last())
+            .join(self.patient_id_mapping, on='patient_num', how='right')
+            .select('patient_id', treatment_num=pl.coalesce('treatment_num', 0))
+            .join(self.treatment_id_mapping, on='treatment_num')
+            .select('patient_id', 'treatment_id')
+        )
 
 
     def plot(self, horizontal_line=True, show_ci=True, max_points=10_000, **kwargs):
