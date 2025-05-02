@@ -102,10 +102,10 @@ class Solver:
             })
             .filter(pl.col('spend') <= budget)
             .group_by('patient_num')
-            .agg(pl.col('patient_num', 'treatment_num').sort_by('time').last())
-            .join(self.patient_id_mapping, on='patient_num', how='right')
-            .select('patient_id', treatment_num=pl.coalesce('treatment_num', 0))
-            .join(self.treatment_id_mapping, on='treatment_num')
+            .agg(pl.col('treatment_num').sort_by('time').last()) # get the last treatment_num for each patient
+            .join(self.patient_id_mapping, on='patient_num', how='right') # get patient IDs and append control (right join)
+            .select('patient_id', treatment_num=pl.coalesce('treatment_num', 0)) # replace nulls with 0
+            .join(self.treatment_id_mapping, on='treatment_num') # replace treatment_num with treatment_id
             .select('patient_id', 'treatment_id')
         )
 
