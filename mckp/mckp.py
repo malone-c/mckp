@@ -22,6 +22,7 @@ class Solver:
 
         self._path = None
         self._is_fit = False
+        self.budget = None
 
     def fit(
         self,
@@ -38,6 +39,8 @@ class Solver:
 
         assert np.isscalar(budget), "budget should be a scalar."
         assert n_threads >= 0, "n_threads should be >=0."
+
+        self.budget = budget
 
         # convert treatment ID to treatment number
         treatment_nums = (
@@ -130,11 +133,3 @@ class Solver:
     def path_allocated_arm_(self):
         assert self._is_fit, "Solver object is not fit."
         return self._path["kpath"]
-
-    def __repr__(self):
-        if self._is_fit:
-            return "MAQ object with {} units and {} arms.".format(
-                self._dim[0], self._dim[1]
-            )
-        else:
-            return "MCKP solver object (not fit)."
