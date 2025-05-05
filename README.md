@@ -1,8 +1,8 @@
 # TODO
 
-* List optimisations made
-* Reduce data copying
-* Add back Qini curve estimation based on full fitted path
+* Document list of optimisations made
+* Change internals to take patient and treatment IDs as strings (rather than ints)
+* Improve memory efficiency by further reducing data copying
 
 ### References
 
