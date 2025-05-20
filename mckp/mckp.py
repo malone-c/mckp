@@ -11,12 +11,12 @@ class Solver:
         assert unique_treatments.columns == ['treatment_id']
 
         # TODO: Handle this stuff inside the C++ extension
-        self.patient_id_mapping = unique_patients.with_columns(patient_num=pl.col("patient_id").rank("dense"))
+        self.patient_id_mapping = unique_patients.with_columns(patient_num=pl.col("patient_id").rank("dense") - 1)
 
         self.treatment_id_mapping = (
             unique_treatments
                 .filter(pl.col('treatment_id').str.to_lowercase() != 'dns') # remove DNS
-                .with_columns(treatment_num=pl.col("treatment_id").rank("dense").add(1).cast(pl.Int64))
+                .with_columns(treatment_num=pl.col("treatment_id").rank("dense").cast(pl.Int64))
                 .vstack(pl.DataFrame({'treatment_id': 'dns', 'treatment_num': 0})) # Add DNS back as 0
         )
 
