@@ -2,6 +2,7 @@ import numpy as np
 import pyarrow as pa
 import polars as pl
 from typing import cast
+import gc
 
 from .ext import solver_cpp
 
@@ -59,6 +60,8 @@ class Solver:
                 .join(treatment_nums, on='patient_id') # replace treatment_id with treatment_num
                 .sort('patient_id')
         )
+        del treatment_nums
+        gc.collect()  # Force garbage collection to free memory
 
         table: pa.Table = pl.DataFrame(data).to_arrow()
         
@@ -108,6 +111,12 @@ class Solver:
             .join(self.treatment_id_mapping, on='treatment_num') # replace treatment_num with treatment_id
             .select('patient_id', 'treatment_id')
         )
+
+    @property
+    def path_(self):
+        """Get the path of the solver."""
+        assert self._is_fit, "Solver object is not fit."
+        return cast(dict, self._path)
 
     @property
     def path_spend_(self):
