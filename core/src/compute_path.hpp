@@ -31,7 +31,6 @@ solution_path compute_path(
   const std::vector<std::vector<TreatmentView>>& treatment_arrays,
   double budget
 ) {
-  std::cout << "Computing path..." << std::endl;
   std::vector<std::vector<double>> spend_gain(3); // 3rd entry: SEs
   std::vector<std::vector<size_t>> i_k_path(3); // 3rd entry: complete path
   std::vector<size_t> active_arm_indices(treatment_arrays.size(), 0); // active treatment entry offset by one
