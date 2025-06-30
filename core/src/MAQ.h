@@ -1,6 +1,12 @@
 #ifndef MAQ_H
 #define MAQ_H
 
+#ifndef NDEBUG
+  #define DEBUG_PRINT(x) std::cout << x << std::endl
+#else
+  #define DEBUG_PRINT(x)
+#endif
+
 // Fork of https://github.com/grf-labs/maq
 // Distributed under the MIT License.
 
@@ -17,18 +23,17 @@ solution_path run(
   double budget
 ) {
 
+  DEBUG_PRINT("Data successfully pre-processed");
   std::vector<std::vector<TreatmentView>> treatment_arrays = process_data(
     treatment_id_arrays,
     reward_arrays,
     cost_arrays
   );
-  std::cout << "Data successfully pre-processed" << std::endl;
 
-  std::cout << "Initializing solver" << std::endl;
+  DEBUG_PRINT("Initializing solver");
   Solver solver(treatment_arrays, budget);
-  std::cout << "Solver initialized" << std::endl;
 
-  std::cout << "Fitting solver" << std::endl;
+  DEBUG_PRINT("Fitting solver");
   return solver.fit();
 }
 
