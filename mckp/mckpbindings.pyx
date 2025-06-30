@@ -53,9 +53,6 @@ cpdef solver_cpp(
             cpp_rewards[i][j] = rewards.get().Value(offset + j)
             cpp_costs[i][j] = costs.get().Value(offset + j)
 
-    # for i in range(cpp_treatment_ids.size()):
-    #     print(f"cpp_treatment_ids[{i}]: {cpp_treatment_ids[i]}")
-
     path = run(
         cpp_treatment_ids,
         cpp_rewards,
